@@ -2,6 +2,9 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
 const webpack = require('webpack'); // only add this if you don't have yet
+const env = require('./env-vars.js')
+
+console.log(env)
 
 module.exports = {
   mode: 'development',
@@ -28,12 +31,12 @@ module.exports = {
         'BITMAMA': {
           'NAME':JSON.stringify("bitmama"),
           'BASE_URL': JSON.stringify('https://cico-staging.bitmama.io'),
-          'CLIENT_API_KEY': JSON.stringify('xxx'),
+          'CLIENT_API_KEY': env.BITMAMA.CLIENT_API_KEY,
         },
         'ONERAMP':{
           'NAME': JSON.stringify("oneramp"),
           'BASE_URL': JSON.stringify('https://sandbox.oneramp.io'),
-          'CLIENT_API_KEY': JSON.stringify('xxx'),
+          'CLIENT_API_KEY': env.ONERAMP.CLIENT_API_KEY,
         },
         "ADDRESS":JSON.stringify('xxxx')
       }

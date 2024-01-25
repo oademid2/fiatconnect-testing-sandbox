@@ -4,4 +4,4 @@ dist
 env
 archive
 localFiles
-env.js
+env-vars.js
