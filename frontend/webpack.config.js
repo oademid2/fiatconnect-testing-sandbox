@@ -27,19 +27,7 @@ module.exports = {
     }),
     new NodePolyfillPlugin(),
     new webpack.DefinePlugin({
-      'process.env':{
-        'BITMAMA': {
-          'NAME':JSON.stringify("bitmama"),
-          'BASE_URL': JSON.stringify('https://cico-staging.bitmama.io'),
-          'CLIENT_API_KEY': env.BITMAMA.CLIENT_API_KEY,
-        },
-        'ONERAMP':{
-          'NAME': JSON.stringify("oneramp"),
-          'BASE_URL': JSON.stringify('https://sandbox.oneramp.io'),
-          'CLIENT_API_KEY': env.ONERAMP.CLIENT_API_KEY,
-        },
-        "ADDRESS":JSON.stringify('xxxx')
-      }
+      'process.env':env
     }),
   ]
 };

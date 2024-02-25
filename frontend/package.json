@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "webpack serve --port 4000"
+    "start": "webpack serve --port 3000"
   },
   "dependencies": {
     "@fiatconnect/fiatconnect-sdk": "^0.5.24",

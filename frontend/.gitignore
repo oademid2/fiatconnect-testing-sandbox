@@ -5,3 +5,4 @@ env
 archive
 localFiles
 env-vars.js
+testResults
