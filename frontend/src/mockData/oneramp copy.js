@@ -1,10 +1,9 @@
 
 var fiatAccountId = "65c7ccac88809cd5395f0443"//"65c430de88809cd5395df244"
-let address = "0x704F357C6290D24ceDc9Ebb94BD461109C826ED4"//"0xb2158dbE4B97D526cA3cb3d55E181cD8cAbFE9b1"
 
 var transferConstraints = {
     maximumCryptoAmount: 2500,
-    maximumFiatAmount: 4556194.43,
+    maximumFiatAmount : 1000,
     minimumCryptoAmount: 0.2,
     minimumFiatAmount: 1000
 }
@@ -15,7 +14,7 @@ var _createQuouteParams = {
   "cryptoType": "cUSD",
   "fiatAmount": "3800",
   "country": "UG",
-  "address":  address
+  "address":  "0xb2158dbE4B97D526cA3cb3d55E181cD8cAbFE9b1"
 }
 
 
@@ -25,9 +24,8 @@ var createQuoteParams = {
     "cryptoType": "cUSD",
     "fiatAmount": "3800",
     "country": "UG",
-    "address":  address
-}
-
+    "address":  "0xb2158dbE4B97D526cA3cb3d55E181cD8cAbFE9b1"
+  }
 var addFiatAccountParams = {
     "fiatAccountSchema": "MobileMoney", 
     "data": {
@@ -39,53 +37,6 @@ var addFiatAccountParams = {
         "fiatAccountType": "MobileMoney"
     }
 }
-
-var addFiatAccountParamsPending = {
-    "fiatAccountSchema": "MobileMoney", 
-    "data": {
-        "accountName": "Jovannn",
-        "institutionName": "My Good Wallet",
-        "mobile": "2567XXXXXXXX",
-        "country": "UG",
-        "operator": "MTN",
-        "fiatAccountType": "MobileMoney"
-    }
-}
-
-var addFiatAccountParamsIncomplete = {
-    "fiatAccountSchema": "MobileMoney", 
-    "data": {
-        "institutionName": "My Good Wallet",
-        "mobile": "2567XXXXXXXX",
-        "country": "UG",
-        "operator": "MTN",
-        "fiatAccountType": "MobileMoney"
-    }
-}
-
-var addFiatAccountParamsBadRegion = {
-    "fiatAccountSchema": "MobileMoney", 
-    "data": {
-        "accountName": "Jovan",
-        "institutionName": "My Good Wallet",
-        "mobile": "2567XXXXXXXX",
-        "country": "CA",
-        "operator": "MTN",
-        "fiatAccountType": "MobileMoney"
-    }
-}
-var addFiatAccountParamsSpecialCharacter = {
-    "fiatAccountSchema": "MobileMoney", 
-    "data": {
-        "accountName": "Jovan",
-        "institutionName": "My Good Wallët!!@#$%^&*()_+-",
-        "mobile": "2567XXXXXXXX",
-        "country": "UG",
-        "operator": "MTN",
-        "fiatAccountType": "MobileMoney"
-    }
-}
-
 
     
 var addKycDoc={
@@ -188,28 +139,11 @@ var testCases = [
 ]
 
 
-var defaultRegion = {
-    "fiatType": "KES",
-    "region": "KE",
-    "country": "KE",
-  
-  }
-
-var regions = [
-    { "fiatType": "KES", "region": "KE", "country": "KE" },
-];
 
 export default {
-    transferConstraints,
     _createQuouteParams,
     createQuoteParams,
-    defaultRegion,
-    regions,
     addFiatAccountParams,
-    addFiatAccountParamsPending,
-    addFiatAccountParamsIncomplete,
-    addFiatAccountParamsSpecialCharacter,
-    addFiatAccountParamsBadRegion,
     addKycParams,
     getKycStatusParams,
     deleteKycParams,

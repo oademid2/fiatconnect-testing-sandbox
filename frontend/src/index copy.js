@@ -138,7 +138,7 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function runTestOpenEndpoints() {
+async function testUnprotectedCalls() {
 
   const providerClient = PROVIDER_CLIENT;
 
@@ -178,25 +178,6 @@ async function runTestOpenEndpoints() {
     console.log("TEST CASE RESPONSE isLoggedIn: ",isLoggedIn)
   }catch(e){
     console.log("isLoggedIn failed: ",e)
-  }
-
-}
-
-
-async function getInfoForTesting() {
-
-  let accountType = gatewayParams.addFiatAccountParams.data.fiatAccountType
-  console.log(accountType)
-
-  let checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-  let acts = checkGetAccounts[accountType]
-  console.log(checkGetAccounts)
-
-  if(acts.length < 0){
-    await testAddAccount( gatewayParams.addFiatAccountParams)
-    return
-  }else{
-    return
   }
 
 }
@@ -269,29 +250,15 @@ function createTest(testName,data){
 
 /////TRANSFER FUNCTIONS//////////////////////////////////////////
 
-async function fullCreateTransferParams(type="in",testCase=null){
+async function fullCreateTransferParams(testCase=null){
+  let createQuoteIn ;
 
-  let createQuoteFn;
-  let createQuoteIn
-
-  if(type=="in"){
-    try{
-      createQuoteIn =await PROVIDER_CLIENT.createQuoteIn(gatewayParams.createQuoteParams)
-      console.log(`createQuote ${type}: `,createQuoteIn) 
-    }catch(e){
-      console.log(`createQuote ${type} failed: `,e) 
-    }}
-    else{
-       try{
-      createQuoteIn = await PROVIDER_CLIENT.createQuoteOut(gatewayParams.createQuoteParams)
-      console.log(`createQuote ${type}: `,createQuoteIn) 
-    }catch(e){
-      console.log(`createQuote ${type} failed: `,e) 
-    }
-
+  try{
+    createQuoteIn = await PROVIDER_CLIENT.createQuoteOut(gatewayParams.createQuoteParams)
+    console.log("createQuoteIn: ",createQuoteIn) 
+  }catch(e){
+    console.log("createQuoteIn failed: ",e) 
   }
-
-
 
   let quote = createQuoteIn
   let quoteInId = quote.value.quote.quoteId
@@ -311,23 +278,16 @@ async function fullCreateTransferParams(type="in",testCase=null){
 }
 
 
-async function fullCreateTransferParamsAndQuote(type="in",testCase=null){
-  let createQuoteFn;
-  if(type=="in"){
-     createQuoteFn = PROVIDER_CLIENT.createQuoteIn;
-  }else{
-     createQuoteFn = PROVIDER_CLIENT.createQuoteOut;
-
-  }
-
-  let createQuoteIn
+async function fullCreateTransferParamsAndQuote(testCase=null){
+  let createQuoteIn ;
 
   try{
-    createQuoteIn = await createQuoteFn(gatewayParams.createQuoteParams)
-    console.log(`createQuote ${type}: `,createQuoteIn) 
+    createQuoteIn = await PROVIDER_CLIENT.createQuoteIn(gatewayParams.createQuoteParams)
+    console.log("createQuoteIn: ",createQuoteIn) 
   }catch(e){
-    console.log(`createQuote ${type} failed: `,e) 
+    console.log("createQuoteIn failed: ",e) 
   }
+
   let quote = createQuoteIn
   let quoteInId = quote.value.quote.quoteId
 
@@ -347,18 +307,11 @@ async function fullCreateTransferParamsAndQuote(type="in",testCase=null){
   return out
 }
 
-
-async function generateTransferInTestCases(type="in"){
+async function generateTransferInTestCases(){
 
   console.log("starting....")
 
   let testCases = []
-
-  var otherCases = [
-    { name: "Invalid idempotenceyKey", testData: {field: "quoteId", value: "FAKE_QUOTEID"} },
-    { name: "no idempotenceyKey", testData: {field: "quoteId", value: "FAKE_QUOTEID"} },
-
-  ];
 
   var fiatCases = [
     { name: "Invalid quoteId", testData: {field: "quoteId", value: "FAKE_QUOTEID"} },
@@ -370,18 +323,6 @@ async function generateTransferInTestCases(type="in"){
     { name: "Duplicate of quote", testData: {field: "quoteId", value: "FAKE_QUOTEID"} }
     ];
 
-    {let testCase = otherCases[0]
-
-      // Call createTransferParams to get initial parameters
-      let transferParams = await fullCreateTransferParams(type,null)
-      testCases.push(createTest(testCase.name, {...transferParams.data, idempotencyKey:null}))}
-
-      let testCase = otherCases[1]
-
-        // Call createTransferParams to get initial parameters
-        let transferParams = await fullCreateTransferParams(type,testCase)
-        testCases.push(createTest(testCase.name, {data:{...transferParams.data}}))
-
 
   for(var i=0;i<fiatCases.length;i++) {
 
@@ -389,7 +330,7 @@ async function generateTransferInTestCases(type="in"){
     let testCase = fiatCases[i]
 
     // Call createTransferParams to get initial parameters
-    let transferParams = await fullCreateTransferParams(type,testCase)
+    let transferParams = await fullCreateTransferParams(testCase)
     testCases.push(createTest(testCase.name, {...transferParams}))
 
 
@@ -402,7 +343,7 @@ async function generateTransferInTestCases(type="in"){
       let testCase = duplicateCases[i]
 
       // Call createTransferParams to get initial parameters
-      let transferParams = await fullCreateTransferParams(type,null)
+      let transferParams = await fullCreateTransferParams()
       console.log("***",testCase.name, {...transferParams})
       let copyOfValue = transferParams.data[testCase.testData.field]
       testCases.push(createTest(testCase.name, {...transferParams}))
@@ -411,7 +352,7 @@ async function generateTransferInTestCases(type="in"){
 
 
 
-      let transferParams2 = await fullCreateTransferParams(type,{name: testCase.name, testData:{field: testCase.testData.field, value: copyOfValue}})
+      let transferParams2 = await fullCreateTransferParams({name: testCase.name, testData:{field: testCase.testData.field, value: copyOfValue}})
       testCases.push(createTest(testCase.name+" 2", {...transferParams2}))
 
     };
@@ -436,7 +377,12 @@ function createQuoteTestCase(fiatType, region, cryptoType, amount, country, addr
 
 function generateQuoteTests() {
 
-  var transferConstraints = gatewayParams.transferConstraints
+  var transferConstraints = {
+    maximumCryptoAmount: 2500,
+    maximumFiatAmount: 4556194.43,
+    minimumCryptoAmount: 0.2,
+    minimumFiatAmount: 1000
+  }
   
   // var defaultRegion = {
   //   "fiatType": "UGX",
@@ -445,7 +391,12 @@ function generateQuoteTests() {
   
   // }
 
-  var defaultRegion = gatewayParams.defaultRegion
+  var defaultRegion = {
+    "fiatType": "KES",
+    "region": "KE",
+    "country": "KE",
+  
+  }
   
   var quoteParamsList = [];
 
@@ -463,7 +414,12 @@ function generateQuoteTests() {
   //     "country": "UG",
   // };
 
-  var regions = gatewayParams.regions
+  var regions = [
+      { "fiatType": "UGX", "region": "UG", "country": "UG" },
+      { "fiatType": "KES", "region": "KE", "country": "KE" },
+      { "fiatType": "INV", "region": "IV", "country": "IV" },
+
+  ];
 
   var defaultAddress = "0xb2158dbE4B97D526cA3cb3d55E181cD8cAbFE9b1";
   var defaultCryptoType = "cUSD";
@@ -558,45 +514,55 @@ function generateQuoteTests() {
 
 /////TEST FUNCTIONS//////////////////////////////////////////
 
+async function quickTest(){
 
-async function testAsynchResponse(fn, params,arr=false){
+  let getFiatAccounts = await PROVIDER_CLIENT.getFiatAccounts()
+  console.log("Fiat get accounts: ", getFiatAccounts)
+
+  let x = await PROVIDER_CLIENT.transferIn(fullCreateTransferParams())
+  let transferTestCases = await generateTransferInTestCases();
+  // let quoteTestCases = await generateQuoteTests();
+
+  console.log("***** QUOTE IN TEST CASES ******")
+
+  for(var i=0;i<quoteTestCases.length;i++) {
+    let testCase = quoteTestCases[i]
+    console.log(testCase)
+    console.log(`Testing ${testCase.testName}`)
+    let results = await testQuoteIn(testCase.testData)
+    console.log(results)
+  }
+
+  for(var i=0;i<transferTestCases.length;i++) {
+    let testCase = transferTestCases[i]
+    console.log(testCase)
+    console.log(`Testing ${testCase.testName}`)
+    let results = await testTransferIn(testCase.testData)
+    console.log(results)
+  }
+
+
+}
+
+function testAsynchResponse(fn, params){
 
   async function testAsynchResponseFn(fn,params,i){
     let time_start = performance.now()
 
-    let res ;
-    if(params){
-      res = await fn(params)
-
-    }else{
-      res = await fn()
-    }
+    await fn(params)
     console.log(`Async function ${i} finished in ${performance.now()-time_start}.`);
-    return res
   }
   const promises = [];
   // Create and push 10 asynchronous functions into the promises array
-  if(arr){
-
-    for (let i = 1; i < 10; i++) {
-      promises.push(testAsynchResponseFn(fn,params[i],i));
-    }
-
-
-  }else{
-      for (let i = 1; i < 10; i++) {
-      promises.push(testAsynchResponseFn(fn,params,i));
+  for (let i = 1; i <= 10; i++) {
+    promises.push(testAsynchResponseFn(fn,params,i));
   }
-
-  }
-
 
   // Execute all promises in parallel
-   return Promise.all(promises)
+  Promise.all(promises)
   .then(results => {
     console.log("All async functions have completed.");
     console.log("Results:", results);
-    return results
   })
   .catch(error => {
     console.error("Error occurred:", error);
@@ -604,7 +570,7 @@ async function testAsynchResponse(fn, params,arr=false){
 
 }
 
-async function runTestQuotesIn(){
+async function runTestQuotes(){
 
   
   let quoteTestCases = await generateQuoteTests();
@@ -621,97 +587,38 @@ async function runTestQuotesIn(){
     console.log("Test Case Data - ", defaulTestCase)
     console.log("Test Case Results ",results)
 
-  console.log("***** QUOTE IN RAPID TEST CASES ******")
-
-
-}
-
-testAsynchResponse(testQuoteIn,defaultCase)
-
-
-
-
-}
-
-async function runTestQuotesOut(){
-
-  
-  let quoteTestCases = await generateQuoteTests();
-  let defaulTestCase = gatewayParams.createQuoteParams;
-
-  console.log(quoteTestCases)
-
-  console.log("***** QUOTE OUT TEST CASES ******")
-
-  for(var i=0;i<quoteTestCases.length;i++) {
-    let testCase = quoteTestCases[i]
-    let results = await testQuoteOut(testCase.testData)
-    console.log(`Test Case Results for : ${testCase.testName}`)
-    console.log("Test Case Data - ", defaulTestCase)
-    console.log("Test Case Results ",results)
-
-
-  console.log("***** QUOTE OUT RAPID TEST CASES ******")
-
-
-}
-
-testAsynchResponse(testQuoteOut,defaulTestCase)
-
-
-}
-
-async function runTestTransferIn(){
-
-  let transferTestCases = await generateTransferInTestCases("in");
-
-  console.log("***** TRANSFER IN TEST CASES ******")
-
-  for(var i=0;i<transferTestCases.length;i++) {
-    let testCase = transferTestCases[i]
-    console.log(testCase)
-    console.log(`Testing ${testCase.testName}`)
-    let results = await testTransferIn(testCase.testData)
-    console.log(results)
   }
 
-  let asynchParams = []
-  for(var i=0;i<10;i++){
-asynchParams.push(await fullCreateTransferParams("in"))
-  }
+  // console.log("***** QUOTE IN RAPID TEST CASES ******")
 
-  testAsynchResponse(testTransferIn,asynchParams,true)
+  // testAsynchResponse(testQuoteIn,defaultCase)
+
+  // console.log("***** QUOTE OUT TEST CASES ******")
+
+  // for(var i=0;i<quoteTestCases.length;i++) {
+  //   let testCase = quoteTestCases[i]
+  //   console.log(testCase)
+  //   let results = await testQuoteOut(testCase.testData)
+  //   console.log(`Test Case Results for : ${testCase.testName}`)
+  //   console.log("Test Case Data - ", testCase)
+  //   console.log("Test Case Results - ",results)  
+  // }
 
 
+  // console.log("***** QUOTE OUT RAPID TEST CASES ******")
 
-}
+  // testAsynchResponse(testQuoteOut,defaulTestCase)
 
-async function runTestTransferOut(){
-
-  let transferTestCases = await generateTransferInTestCases("out");
-
-  console.log("***** TRANSFER OUT TEST CASES ******")
-
-  for(var i=0;i<transferTestCases.length;i++) {
-    let testCase = transferTestCases[i]
-    console.log(testCase)
-    console.log(`Testing ${testCase.testName}`)
-    let results = await testTransferOut(testCase.testData)
-    console.log(results)
-  }
-
-  let asynchParams = []
-
-  for(var i=0;i<10;i++){
-    asynchParams.push(await fullCreateTransferParams("in"))
-      }
-    
-      testAsynchResponse(testTransferIn,asynchParams,true)
-    
+  // for(var i=0;i<transferTestCases.length;i++) {
+  //   let testCase = transferTestCases[i]
+  //   console.log(testCase)
+  //   console.log(`Testing ${testCase.testName}`)
+  //   let results = await testTransferIn(testCase.testData)
+  //   console.log(results)
+  // }
 
 
 }
-
 
 async function sendFunds(amount, receiverAddress){
     try {
@@ -765,223 +672,44 @@ async function runTestTransferStatus(){
   console.log("Asking user to send transfer: ", transferId, receiverAddress,amountToSend, cryptoType)
 
   timeBasedData.testTransferComplete.id = transferId
+  // timeBasedData.testTransferComplete.status = "pending"
+  // timeBasedData.testTransferComplete.data = {quoteResponse,transferId,receiverAddress}
+
+
+
+//   try {
+//     // Create signer
+//     const signer = await walletProvider.getSigner();      
+//     // Construct transaction object
+//     const tx = {
+//         to: receiverAddress_,
+//         value: parseEther('2')
+//     };
+
+//     // Send transaction
+//     const txResponse = await signer.sendTransaction(tx);
+//     console.log('Transaction sent:', txResponse);
+//     PROVIDER_CLIENT.getTransferStatus(transferId)
+
+// } catch (error) {
+//     console.error('Error sending transaction:', error);
+// }
 
 }
 
-async function quickTransferInTest(){
-  console.log("Quick Quote Test")
-  let transferParams = await fullCreateTransferParams("in");
+async function testQuoteIn_(){
+  console.log("a")
+  let transferParams = await fullCreateTransferParams();
   console.log(transferParams)
-  transferParams.data = {
-    "quoteId": "d5cb3954-8210-46a1-a88a-d520931224cd",
-    "fiatAccountId": "65c7ccac88809cd5395f0443"
-  }
-  let createQuoteParams = await testTransferIn(transferParams)
-  console.log(createQuoteParams)
-}
+//   transferParams.data = {
+//     "quoteId": "d5cb3954-8210-46a1-a88a-d520931224cd",
+//     "fiatAccountId": "65c7ccac88809cd5395f0443"
+// }
+//   let createQuoteParams = await testTransferIn(transferParams)
+//   console.log(createQuoteParams)
 
-async function quickTransferTest(){
-
-  // let a =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParams)
-  // console.log(a)
-
-  let act =  await PROVIDER_CLIENT.getFiatAccounts()
-  console.log(act)
-
-  let type =  "out"
-  console.log("Quick Quote Test ",type)
-  let transferParams = await fullCreateTransferParams("in");
-  console.log(transferParams)
-
-  let dupe = {
-    "data": {
-        "quoteId": "579aa72d-4338-49d5-8282-b333f0766795",
-        "fiatAccountId": "65c7ccac88809cd5395f0443"
-    },
-    "idempotencyKey": "7248377494253897"
-}
-
-  transferParams.data.fiatAccountId =  dupe.data.fiatAccountId//"65de8e1a35cca3e0333caa66"//"65c7ccac88809cd5395f0443"
-  
-  
-  if(type=="in"){
-    let createQuoteParams = await testTransferIn(transferParams)
-    console.log(createQuoteParams)
-  }else{
-    let createQuoteParams = await testTransferOut(transferParams)
-    console.log(createQuoteParams)
-    
-  }
 
 }
-
-async function quickTransferOutTest(){
-  console.log("Quick Quote Test")
-  let transferParams = await fullCreateTransferParams("out");
-  console.log(transferParams)
-  transferParams.data = {
-    "quoteId": "d5cb3954-8210-46a1-a88a-d520931224cd",
-    "fiatAccountId": "65c7ccac88809cd5395f0443"
-  }
-  let createQuoteParams = await testTransferOut(transferParams)
-  console.log(createQuoteParams)
-}
-
-async function runTestAccounts (){
-
-  var duplicateCases = [
-    { name: "Duplicate idempotency key", testData: {field: "idempotencyKey", value: "123"} },
-    { name: "Duplicate of quote", testData: {field: "quoteId", value: "FAKE_QUOTEID"} }
-    ];
-  
-
-  // console.log("DUPLICATE FIAT ACCOUNT ADD")
-  // let addFiatAccountResponse =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParams)
-  // console.log(addFiatAccountResponse)
-
-  // addFiatAccountResponse =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParams)
-  // console.log(addFiatAccountResponse)
-
-
-  // console.log("DELETE PENDING")
-  // var addFiatAccountResponse =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParamsPending)
-  // let fiatAccountId = addFiatAccountResponse.value.fiatAccountId
-  // let fiatAccount =  addFiatAccountResponse.value
-  // console.log(fiatAccount)
-
-  // let transferParams = await fullCreateTransferParams("out");
-  // transferParams.data.fiatAccountId = fiatAccountId
-  // let testTransferOutResponse = await testTransferOut(transferParams)
-
-  // let deleteAccountResponse = await PROVIDER_CLIENT.deleteFiatAccount({fiatAccountId:fiatAccountId})
-  // console.log({deleteAccountResponse})
-
-  // let checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-  // console.log(checkGetAccounts)
-  // console.log(checkGetAccounts[fiatAccount.fiatAccountType].includes(fiatAccount.fiatAccountId))
-
-  // let status = await PROVIDER_CLIENT.getTransferStatus({fiatAccountId:"65deb66335cca3e0333caac9"})
-  // console.log(status)
-
-  // console.log("INCOMPLETE ADD")
-  // var addFiatAccountResponse =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParamsIncomplete)
-  // console.log(addFiatAccountResponse)
-
-  let accountType = gatewayParams.addFiatAccountParams.data.fiatAccountType
-  console.log(accountType)
-
-  let checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-  let acts = checkGetAccounts[accountType]
-  console.log(checkGetAccounts)
-
-
-  // console.log("RAPID ADD")
-  // let checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-  // console.log(checkGetAccounts)
-  // let length_before_adding = checkGetAccounts[accountType].length
-  // console.log(`length before adding : ${length_before_adding}`)
-
-  // let asynchParams = []
-  // let p = null;
-  // for(var i=0;i<10;i++){
-  //   p = {...gatewayParams.addFiatAccountParams}
-  //   p.data.mobile = {...p}.data.mobile+i.toString()
-  //   console.log({...p})
-  //   asynchParams.push({...p})
-  // }
-
-  // let responses = await testAsynchResponse(testAddAccount,asynchParams,true)
-  // console.log(responses)
-
-  // checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-  // let length_after_adding = checkGetAccounts[accountType].length
-  // console.log(`length before adding : ${length_after_adding}`)
-
-  // console.log("RAPID Delete")
-  // asynchParams = []
-  // p = null;
-  // for(var i=0;i<10;i++){
-  //   try{
-  //     asynchParams.push({fiatAccountId: responses[i].value.fiatAccountId})
-  //   }catch(e){
-  //     console.log(`could not parse response ${i}`, responses[i])
-  //   }
-  // }
-
-  // responses = await testAsynchResponse(testDeleteAccount,asynchParams,true)
-  // console.log(responses)
-
-  // checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-  // let length_after_deleting = checkGetAccounts[accountType].length
-  // console.log(`length before adding : ${length_after_deleting} `, length_after_deleting==length_before_adding)
-
-  // console.log("RAPID retreive")
-  // responses = await testAsynchResponse(testGetFiatAccounts,null,false)
-  // console.log(responses)
-
-  // checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-  // let length_after_deleting = checkGetAccounts[accountType].length
-  // console.log(`length before adding : ${length_after_deleting} `, length_after_deleting==length_before_adding)
-
-  console.log("SPECIAL CHARACTERS ADD FIAT ACCOUNT")
-
-  var addFiatAccountResponse =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParamsSpecialCharacter)
-  console.log(addFiatAccountResponse)
-
-
-  console.log("BAD REGION FIAT ACCOUNT")
-  var addFiatAccountResponse =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParamsBadRegion)
-  console.log(addFiatAccountResponse)
-
-  console.log("GOOD REGION FIAT ACCOUNT")
-  var addFiatAccountResponse =  await PROVIDER_CLIENT.addFiatAccount(gatewayParams.addFiatAccountParams)
-  console.log(addFiatAccountResponse)
-
-
-
-  
-
-
-  }
-
-  async function testAddAccount(params){
-    let res = await PROVIDER_CLIENT.addFiatAccount(params)
-    console.log(res)
-    return res
-  }
-
-  async function testGetFiatAccounts(){
-    let res = await PROVIDER_CLIENT.getFiatAccounts()
-    return res
-  }
-
-
-  async function testDeleteAccount(params){
-    let res = await PROVIDER_CLIENT.deleteFiatAccount(params)
-    return res
-  }
-
-
-
-
-  async function deleteAllFiatAccounts(){
-    let accountType = gatewayParams.addFiatAccountParams.data.fiatAccountType
-    console.log(accountType)
-  
-    let checkGetAccounts = await PROVIDER_CLIENT.getFiatAccounts()
-    let acts = checkGetAccounts[accountType]
-    console.log(checkGetAccounts)
-  
-    let rem
-    for(var i=1;i<acts.length;i++){
-      rem = await PROVIDER_CLIENT.deleteFiatAccount({fiatAccountId:acts[i].fiatAccountId})
-      console.log(rem)
-    }
-  
-  }
-
-
-
 async function checkStatusAfterSentFunds(){
   // timeBasedData.testTransferComplete.id="65dd49a6adc94ca238ef60a5"
   if(timeBasedData.testTransferComplete.id ){
@@ -992,26 +720,19 @@ async function checkStatusAfterSentFunds(){
 }
 
 
-
 const connectWalletBtn = document.getElementById('connectWalletBtn');
 const siweBtn = document.getElementById('siweBtn');
-const testQuoteInBtn = document.getElementById('testQuoteInBtn');
-const testQuoteOutBtn = document.getElementById('testQuoteOutBtn');
+const testQuoteInBtn = document.getElementById('testQuoteIn');
+const testQuoteOutBtn = document.getElementById('testQuoteOut');
 const testTransferInBtn = document.getElementById('testTransferInBtn');
 const testTransferOutBtn = document.getElementById('testTransferOutBtn');
-const testAccountsBtn = document.getElementById('testAccountsBtn');
-const testOpenEndpointsBtn = document.getElementById('testOpenEndpointsBtn')
-const getInfoForTestingBtn = document.getElementById('getInfoForTestingBtn')
-
-
-const testOtherBtn = document.getElementById('testOtherBtn');
-
 
 
 
 
 // const testBtn = document.getElementById('testBtn');
 
+const testTransferOutBtn = document.getElementById('testTransferOutBtn');
 const checkStatusAfterSentFundsBtn = document.getElementById('checkStatusAfterSentFundsBtn');
 const testQuoteIn_Btn = document.getElementById('testQuoteInTrue');
 
@@ -1020,24 +741,10 @@ const siweMsgBtn = document.getElementById('siweMsgBtn');
 
 connectWalletBtn.onclick = connectWallet;
 siweBtn.onclick = signInWithEthereum;
-testQuoteInBtn.onclick = runTestQuotesIn;
-testQuoteOutBtn.onclick = runTestQuotesOut;
-testTransferInBtn.onclick = runTestTransferIn;
-testTransferOutBtn.onclick = runTestTransferOut;
-testAccountsBtn.onclick = runTestAccounts;
-testOpenEndpointsBtn.onclick = runTestOpenEndpoints;
-
-getInfoForTestingBtn.onclick = getInfoForTesting;
-
-// testOtherBtn.onclick = creatAccountTestCases;
-
-
-
-
-// testBtn.onclick = quickTest;
+testBtn.onclick = quickTest;
 siweMsgBtn.onclick = makeSiweMessage;
-// testTransferInBtn.onclick = testTransferIn;
-// testTransferOutBtn.onclick = testTransferOut;
+testTransferInBtn.onclick = testTransferIn;
+testTransferOutBtn.onclick = testTransferOut;
 
 testQuoteInBtn.onclick = runTestTransferStatus;
 testQuoteIn_Btn.onclick = testQuoteIn_;
